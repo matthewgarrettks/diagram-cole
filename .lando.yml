@@ -1,0 +1,5 @@
+name: diagram
+recipe: lemp
+config:
+  php: 8.2
+  webroot: public
