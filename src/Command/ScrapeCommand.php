@@ -56,6 +56,9 @@ class ScrapeCommand extends Command
       $output->writeln("Please include at least one model to scrape.");
       die();
     }
+    foreach($models as $model){
+      $this->scrape->scrapeBooksFor($model);
+    }
     $output->writeln('Scrape run successfully!');
     return Command::SUCCESS;
   }

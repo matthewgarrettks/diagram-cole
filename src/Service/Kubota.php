@@ -1,7 +1,9 @@
 <?php
+
 namespace App\Service;
 
 use App\Entity\FetchResponse;
+use App\Service\Log;
 
 class Kubota
 {
@@ -14,7 +16,7 @@ class Kubota
 
   private string $origin = 'https://kpad.kubota.com';
 
-  private int $consecutiveErrorCount;
+  private int $consecutiveErrorCount = 0;
 
   private \DateTimeImmutable $lastAuth;
 
@@ -22,14 +24,16 @@ class Kubota
 
   private string $consumerCode = '100faiXie8u';
 
+  private string $endpoint_books = 'api/books';
+
   private array $errors;
 
   /**
    * @var \App\Service\Log
    */
-  private Log $log;
+  private \App\Service\Log $log;
 
-  public function __construct(Log $log)
+  public function __construct(\App\Service\Log $log)
   {
     $this->log = $log;
   }
@@ -43,7 +47,6 @@ class Kubota
   public function fetch(string $url, bool $allowReAuthentication = true): FetchResponse|\Exception
   {
     try {
-      echo "Start";
       $curl = curl_init($url);
       curl_setopt($curl, CURLOPT_HEADER, false);
       curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -69,23 +72,23 @@ class Kubota
         $this->log->end();
       }
       if ((true === $allowReAuthentication) && (200 !== $status) && (true === $this->authenticate())) {
-        return $this->scrape($url, false);
+        return $this->fetch($url, false);
       }
       return new FetchResponse($status, $json_response);
 
     } catch (\Exception $e) {
-      echo "FAIL";
+      $this->log->log("FAIL fetching $url");
       return $e;
     }
   }
 
   /**
    * Authenticates against the Kubota server
-   * @return true|void
+   * @return bool
    */
-  private function authenticate()
+  private function authenticate(): bool
   {
-    if (time() - $this->lastAuth->getTimestamp() < 300) {
+    if (isset($this->lastAuth) && time() - $this->lastAuth->getTimestamp() < 300) {
       return true;
     }
     $result = $this->authRaw();
@@ -100,7 +103,7 @@ class Kubota
     }
     $this->log('!!! Second attempt auth error: ' . $result->getMessage() . ' !!!');
     $this->log->end();
-
+    return false;
   }
 
   /**
@@ -136,13 +139,39 @@ class Kubota
         throw new \Exception('No access token');
       }
       $this->authValue = 'Bearer ' . $data->access_token;
-      $this->lastAuth = time();
+      $this->lastAuth = new \DateTimeImmutable();
       $this->log->log('*** Authorized ***');
       return true;
     } catch (\Exception $e) {
       return $e;
     }
-
   }
+
+  public function getAllBooksBeginningWith($begin, $offset = 0): ?\stdClass
+  {
+    $url = $this->origin . '/' . $this->endpoint_books . '?model_name=' . $begin . '&match_condition=prefix&offset=' . $offset . '&sort=model_name&order=ASC';
+    $this->log->log("Querying $url\n");
+    $data = $this->fetch($url);
+    if (empty($data->getData()) || 200 !== $data->getCode()) {
+      $this->log->log('!!! Boop !!! Failed getting models starting with ' . $begin . ', offset ' . $offset, [], true);
+      return null;
+    }
+    return json_decode($data->getData());
+  }
+
+  public function getBookIdsFor($text): array
+  {
+    $data = $this->getAllBooksBeginningWith($text);
+    $return = [];
+    foreach ($data as $books) {
+      if (is_array($books)) {
+        foreach ($books as $book) {
+          $return[] = $book->book_id;
+        }
+      }
+    }
+    return $return;
+  }
+
 
 }

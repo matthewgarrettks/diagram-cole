@@ -23,6 +23,11 @@ class Scrape
 
   }
 
+  public function scrapeBooksFor($text){
+    $book_ids = $this->api->getBookIdsFor($text);
+    print_r($book_ids);
+  }
+
   /**
    * Get JSON from Kubota's API
    * @param  string  $url
