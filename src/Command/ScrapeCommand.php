@@ -17,49 +17,50 @@ use Symfony\Component\Console\Output\OutputInterface;
 class ScrapeCommand extends Command
 {
 
-  /**
-   * @var \App\Service\Scrape
-   */
-  private Scrape $scrape;
+    /**
+     * @var \App\Service\Scrape
+     */
+    private Scrape $scrape;
 
-  /**
-   * Constructor, pass in the scrape service
-   * @param  \App\Service\Scrape  $scrape
-   * @param  string|null  $name
-   */
-  public function __construct(Scrape $scrape, string $name = null)
-  {
-    parent::__construct($name);
-    $this->scrape = $scrape;
-  }
-
-  /**
-   * Configure the console command
-   * @return void
-   */
-  public function configure(): void
-  {
-    $this->addArgument('models', InputArgument::REQUIRED, 'Comma separated list of models');
-  }
-
-  /**
-   * Execute console command
-   * @param  \Symfony\Component\Console\Input\InputInterface  $input
-   * @param  \Symfony\Component\Console\Output\OutputInterface  $output
-   * @return int
-   */
-  protected function execute(InputInterface $input, OutputInterface $output): int
-  {
-    // Grab the equipment models from the command line, comma separated
-    $models = explode(",", $input->getArgument("models"));
-    if(count($models) < 1){
-      $output->writeln("Please include at least one model to scrape.");
-      die();
+    /**
+     * Constructor, pass in the scrape service
+     * @param  \App\Service\Scrape  $scrape
+     * @param  string|null  $name
+     */
+    public function __construct(Scrape $scrape, string $name = null)
+    {
+        parent::__construct($name);
+        $this->scrape = $scrape;
     }
-    foreach($models as $model){
-      $this->scrape->scrapeBooksFor($model);
+
+    /**
+     * Configure the console command
+     * @return void
+     */
+    public function configure(): void
+    {
+        $this->addArgument('models', InputArgument::REQUIRED, 'Comma separated list of models');
     }
-    $output->writeln('Scrape run successfully!');
-    return Command::SUCCESS;
-  }
+
+    /**
+     * Execute console command
+     * @param  \Symfony\Component\Console\Input\InputInterface  $input
+     * @param  \Symfony\Component\Console\Output\OutputInterface  $output
+     * @return int
+     */
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        // Grab the equipment models from the command line, comma separated
+        $models = explode(",", $input->getArgument("models"));
+        if (count($models) < 1) {
+            $output->writeln("Please include at least one model to scrape.");
+            die();
+        }
+        foreach ($models as $model) {
+            $this->scrape->scrapeBooksFor($model);
+        }
+        $output->writeln('Scrape run successfully!');
+        return Command::SUCCESS;
+    }
+
 }
